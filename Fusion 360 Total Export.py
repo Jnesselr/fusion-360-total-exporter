@@ -151,7 +151,8 @@ class TotalExport(object):
       self._write_component(sub_path, sub_component)
 
   def _write_step(self, output_path, component: adsk.fusion.Component):
-    if os.path.exists(output_path + ".stp"):
+    file_path = output_path + ".stp"
+    if os.path.exists(file_path):
       return
     export_manager = component.parentDesign.exportManager
 
@@ -159,7 +160,8 @@ class TotalExport(object):
     export_manager.execute(options)
 
   def _write_stl(self, output_path, component: adsk.fusion.Component):
-    if os.path.exists(output_path + ".stl"):
+    file_path = output_path + ".stl"
+    if os.path.exists(file_path):
       return
     export_manager = component.parentDesign.exportManager
 
@@ -184,23 +186,26 @@ class TotalExport(object):
         self._write_stl_body(os.path.join(output_path, body.name), body)
         
   def _write_stl_body(self, output_path, body):
-    if os.path.exists(output_path + ".stl"):
+    output_path + ".stl"
+    if os.path.exists(file_path):
       return
     export_manager = body.parentComponent.parentDesign.exportManager
 
     try:
-      options = export_manager.createSTLExportOptions(body, output_path)
+      options = export_manager.createSTLExportOptions(body, file_path)
       export_manager.execute(options)
     except BaseException:
       # Probably an empty model, ignore it
       pass
 
   def _write_iges(self, output_path, component: adsk.fusion.Component):
-    if os.path.exists(output_path + ".igs"):
+    file_path = output_path + ".igs"
+    if os.path.exists(file_path):
       return
+
     export_manager = component.parentDesign.exportManager
 
-    options = export_manager.createIGESExportOptions(output_path, component)
+    options = export_manager.createIGESExportOptions(file_path, component)
     export_manager.execute(options)
 
   def _write_dxf(self, output_path, sketch: adsk.fusion.Sketch):
