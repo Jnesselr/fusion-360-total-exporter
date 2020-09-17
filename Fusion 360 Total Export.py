@@ -151,12 +151,16 @@ class TotalExport(object):
       self._write_component(sub_path, sub_component)
 
   def _write_step(self, output_path, component: adsk.fusion.Component):
+    if os.path.exists(output_path + ".stp"):
+      return
     export_manager = component.parentDesign.exportManager
 
     options = export_manager.createSTEPExportOptions(output_path, component)
     export_manager.execute(options)
 
   def _write_stl(self, output_path, component: adsk.fusion.Component):
+    if os.path.exists(output_path + ".stl"):
+      return
     export_manager = component.parentDesign.exportManager
 
     try:
@@ -180,6 +184,8 @@ class TotalExport(object):
         self._write_stl_body(os.path.join(output_path, body.name), body)
         
   def _write_stl_body(self, output_path, body):
+    if os.path.exists(output_path + ".stl"):
+      return
     export_manager = body.parentComponent.parentDesign.exportManager
 
     try:
@@ -190,6 +196,8 @@ class TotalExport(object):
       pass
 
   def _write_iges(self, output_path, component: adsk.fusion.Component):
+    if os.path.exists(output_path + ".igs"):
+      return
     export_manager = component.parentDesign.exportManager
 
     options = export_manager.createIGESExportOptions(output_path, component)
