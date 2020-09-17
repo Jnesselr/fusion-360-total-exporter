@@ -1,0 +1,10 @@
+{
+	"autodeskProduct":	"Fusion360",
+	"type":	"script",
+	"author":	"Justin Nesselrotte",
+	"description":	{
+		"":	"A convenient way to export all of your designs and projects in the event you suddenly find yourself in need of something like that."
+	},
+	"supportedOS":	"windows|mac",
+	"editEnabled":	true
+}
