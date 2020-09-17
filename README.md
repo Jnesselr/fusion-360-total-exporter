@@ -1,4 +1,4 @@
-# fusion-360-total-exporter
+# Fusion 360 Total Exporter
 Need to export all of your fusion data in a bunch of formats? We've got you covered. This will export your designs across all hubs, projects, files, and components. It exports them in STL, STEP, and IGES format. It doesn't ask what you want written out, it just writes out the latest version of everything.
 
 ## How do I use this?
