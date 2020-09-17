@@ -195,7 +195,7 @@ class TotalExport(object):
     return out_path
   
   def _name(self, name):
-    return name.replace('/', " ")
+    return name.replace('/', ' ').replace('"', ' ').replace('%', ' ')
 
     
 
