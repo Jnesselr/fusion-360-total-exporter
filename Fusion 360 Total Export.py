@@ -137,6 +137,11 @@ class TotalExport(object):
     self._write_stl(output_path, component)
     self._write_iges(output_path, component)
 
+    sketches = component.sketches
+    for sketch_index in range(sketches.count):
+      sketch = sketches.item(sketch_index)
+      self._write_dxf(os.path.join(output_path, sketch.name) + '.dxf', sketch)
+
     occurrences = component.occurrences
     for occurrence_index in range(occurrences.count):
       occurrence = occurrences.item(occurrence_index)
@@ -188,6 +193,9 @@ class TotalExport(object):
 
     options = export_manager.createIGESExportOptions(output_path, component)
     export_manager.execute(options)
+
+  def _write_dxf(self, output_path, sketch: adsk.fusion.Sketch):
+    sketch.saveAsDXF(output_path)
 
   def _take(self, *path):
     out_path = os.path.join(*path)
