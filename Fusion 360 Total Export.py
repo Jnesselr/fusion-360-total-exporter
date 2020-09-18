@@ -86,7 +86,7 @@ class TotalExport(object):
     try:
       document = self.documents.open(file)
     except BaseException as ex:
-      self.ui.messageBox("Opening {} failed!".format(file.name))
+      self.ui.messageBox("Opening {} failed! {}".format(file.name, ex))
       return
 
     if document is None:
