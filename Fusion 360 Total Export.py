@@ -217,7 +217,12 @@ class TotalExport(object):
     return out_path
   
   def _name(self, name):
-    return re.sub('[^a-zA-Z0-9 \n\.]', '', name)
+    name = re.sub('[^a-zA-Z0-9 \n\.]', '', name).strip()
+
+    if name.endswith('.stp') or name.endswith('.stl') or name.endswith('.igs'):
+      name = name[0: -4] + "_" + name[-3:]
+      
+    return name
 
     
 
