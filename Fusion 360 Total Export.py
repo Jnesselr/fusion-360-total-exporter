@@ -118,8 +118,9 @@ class TotalExport(object):
 
       file_export_path = os.path.join(file_folder_path, self._name(file.name))
       # Write f3d/f3z file
-      options = export_manager.createFusionArchiveExportOptions(file_export_path)
-      export_manager.execute(options)
+      if not os.path.exists("%s.f3d" % file_export_path): 
+        options = export_manager.createFusionArchiveExportOptions(file_export_path)
+        export_manager.execute(options)
       
       self._write_component(file_folder_path, design.rootComponent)
     except BaseException:
@@ -150,6 +151,8 @@ class TotalExport(object):
       self._write_component(sub_path, sub_component)
 
   def _write_step(self, output_path, component: adsk.fusion.Component):
+    if os.path.exists("%s.stp" % output_path): 
+      return
     export_manager = component.parentDesign.exportManager
 
     options = export_manager.createSTEPExportOptions(output_path, component)
@@ -159,8 +162,9 @@ class TotalExport(object):
     export_manager = component.parentDesign.exportManager
 
     try:
-      options = export_manager.createSTLExportOptions(component, output_path)
-      export_manager.execute(options)
+      if not os.path.exists("%s.stl" % output_path): 
+        options = export_manager.createSTLExportOptions(component, output_path)
+        export_manager.execute(options)
     except BaseException:
       # Probably an empty model, ignore it
       pass
@@ -179,6 +183,8 @@ class TotalExport(object):
         self._write_stl_body(os.path.join(output_path, body.name), body)
         
   def _write_stl_body(self, output_path, body):
+    if os.path.exists("%s.stl" % output_path): 
+      return
     export_manager = body.parentComponent.parentDesign.exportManager
 
     try:
@@ -189,12 +195,16 @@ class TotalExport(object):
       pass
 
   def _write_iges(self, output_path, component: adsk.fusion.Component):
+    if os.path.exists("%s.ugs" % output_path): 
+      return
     export_manager = component.parentDesign.exportManager
 
     options = export_manager.createIGESExportOptions(output_path, component)
     export_manager.execute(options)
 
   def _write_dxf(self, output_path, sketch: adsk.fusion.Sketch):
+    if os.path.exists("%s.dxf" % output_path): 
+      return
     sketch.saveAsDXF(output_path)
 
   def _take(self, *path):
