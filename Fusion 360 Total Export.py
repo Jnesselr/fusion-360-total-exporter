@@ -16,6 +16,7 @@ class TotalExport(object):
     self.ui = self.app.userInterface
     self.data = self.app.data
     self.documents = self.app.documents
+    self.last_folder_path = "nothing yet..."
     
   def __enter__(self):
     return self
@@ -108,6 +109,8 @@ class TotalExport(object):
         file_folder_path,
         self._name(file.name) + "." + file.fileExtension
         )
+
+      self.last_folder_path = file_folder_path
 
       if not os.path.exists(file_folder_path):
         self.ui.messageBox("Couldn't make root folder {}".format(file_folder_path))
@@ -218,4 +221,4 @@ def run(context):
 
   except:
     ui  = app.userInterface
-    ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
+    ui.messageBox('Failed at {}:\n{}'.format(total_export.last_folder_path, traceback.format_exc()))
