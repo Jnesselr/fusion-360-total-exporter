@@ -186,7 +186,7 @@ class TotalExport(object):
         self._write_stl_body(os.path.join(output_path, body.name), body)
         
   def _write_stl_body(self, output_path, body):
-    output_path + ".stl"
+    file_path = output_path + ".stl"
     if os.path.exists(file_path):
       return
     export_manager = body.parentComponent.parentDesign.exportManager
