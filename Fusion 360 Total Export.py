@@ -141,7 +141,7 @@ class TotalExport(object):
     sketches = component.sketches
     for sketch_index in range(sketches.count):
       sketch = sketches.item(sketch_index)
-      self._write_dxf(os.path.join(output_path, sketch.name) + '.dxf', sketch)
+      self._write_dxf(os.path.join(output_path, sketch.name), sketch)
 
     occurrences = component.occurrences
     for occurrence_index in range(occurrences.count):
@@ -209,6 +209,10 @@ class TotalExport(object):
     export_manager.execute(options)
 
   def _write_dxf(self, output_path, sketch: adsk.fusion.Sketch):
+    file_path = output_path + ".dxf"
+    if os.path.exists(file_path):
+      return
+
     sketch.saveAsDXF(output_path)
 
   def _take(self, *path):
