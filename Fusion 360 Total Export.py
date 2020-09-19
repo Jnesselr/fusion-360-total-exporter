@@ -210,7 +210,7 @@ class TotalExport(object):
     sketches = component.sketches
     for sketch_index in range(sketches.count):
       sketch = sketches.item(sketch_index)
-      self._write_dxf(os.path.join(output_path, sketch.name + ".dxf"), sketch)
+      self._write_dxf(os.path.join(output_path, sketch.name), sketch)
 
     occurrences = component.occurrences
     for occurrence_index in range(occurrences.count):
@@ -299,7 +299,7 @@ class TotalExport(object):
 
     self.log.info("Writing dxf sketch file \"{}\"".format(file_path))
 
-    sketch.saveAsDXF(output_path)
+    sketch.saveAsDXF(file_path)
 
   def _take(self, *path):
     out_path = os.path.join(*path)
