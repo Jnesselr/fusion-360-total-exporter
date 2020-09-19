@@ -130,7 +130,12 @@ class TotalExport(object):
       self.ui.messageBox("Failed while working on {}".format(file_folder_path))
       raise
     finally:
-      document.close(False)
+      try:
+        document.close(False)
+      except BaseException:
+        # self.ui.messageBox("Failed while closing {}\n{}".format(file_folder_path, traceback.format_exc()))
+        pass
+
 
   def _write_component(self, component_base_path, component: adsk.fusion.Component):
     design = component.parentDesign
