@@ -129,7 +129,7 @@ class TotalExport(object):
       
       self._write_component(file_folder_path, design.rootComponent)
     except BaseException:
-      self.ui.messageBox("Failed while working on {}".format(file_folder_path))
+      self.ui.messageBox("Failed while working on {}\n{}".format(file_folder_path, traceback.format_exc()))
       raise
     finally:
       try:
