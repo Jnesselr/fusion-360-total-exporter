@@ -195,7 +195,7 @@ class TotalExport(object):
       pass
 
   def _write_iges(self, output_path, component: adsk.fusion.Component):
-    if os.path.exists("%s.ugs" % output_path): 
+    if os.path.exists("%s.igs" % output_path): 
       return
     export_manager = component.parentDesign.exportManager
 
