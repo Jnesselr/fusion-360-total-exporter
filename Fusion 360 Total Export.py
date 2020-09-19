@@ -299,7 +299,7 @@ class TotalExport(object):
 
     self.log.info("Writing dxf sketch file \"{}\"".format(file_path))
 
-    sketch.saveAsDXF(output_path)
+    sketch.saveAsDXF(file_path)
 
   def _take(self, *path):
     out_path = os.path.join(*path)
