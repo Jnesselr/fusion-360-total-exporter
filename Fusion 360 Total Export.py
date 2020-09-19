@@ -92,6 +92,8 @@ class TotalExport(object):
     if document is None:
       return
 
+    document.activate()
+
     try:
       file_folder = file.parentFolder
       file_folder_path = self._name(file_folder.name)
