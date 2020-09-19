@@ -214,7 +214,7 @@ class TotalExport(object):
     return out_path
   
   def _name(self, name):
-    return re.sub('[^a-zA-Z0-9 \n\.]', '', name)
+    return re.sub('[^a-zA-Z0-9 \n\.]', '', name).strip()
 
     
 
