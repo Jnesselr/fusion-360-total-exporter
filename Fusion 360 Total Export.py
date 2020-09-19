@@ -3,7 +3,10 @@
 from __future__ import with_statement
 
 import adsk.core, adsk.fusion, adsk.cam, traceback
+
+from logging import Logger, FileHandler, Formatter
 from threading import Thread
+
 import time
 import os
 import re
@@ -16,6 +19,9 @@ class TotalExport(object):
     self.ui = self.app.userInterface
     self.data = self.app.data
     self.documents = self.app.documents
+    self.log = Logger("Fusion 360 Total Export")
+    self.num_issues = 0
+    self.was_cancelled = False
     
   def __enter__(self):
     return self
@@ -30,29 +36,52 @@ class TotalExport(object):
           "Take an early lunch."
       )
 
-    folder_dialog = self.ui.createFolderDialog()
-    folder_dialog.title = "Where should we store this export?"
-    dialog_result = folder_dialog.showDialog()
-    if dialog_result != adsk.core.DialogResults.DialogOK:
-      return
-    output_path = folder_dialog.folder
+    output_path = self._ask_for_output_path()
 
+    if output_path is None:
+      return
+
+    file_handler = FileHandler(os.path.join(output_path, 'output.log'))
+    file_handler.setFormatter(Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    self.log.addHandler(file_handler)
+
+    self.log.info("Starting export!")
+
+    self._export_data(output_path)
+
+    self.log.info("Done exporting!")
+
+    if self.was_cancelled:
+      self.ui.messageBox("Cancelled!")
+    elif self.num_issues > 0:
+      self.ui.messageBox("The exporting process ran into {num_issues} issue{english_plurals}. Please check the log for more information".format(
+        num_issues=self.num_issues,
+        english_plurals="s" if self.num_issues > 1 else ""
+        ))
+    else:
+      self.ui.messageBox("Export finished completely successfully!")
+
+  def _export_data(self, output_path):
     progress_dialog = self.ui.createProgressDialog()
-    progress_dialog.show("Writing data!", "Writing %v of %m", 0, 1, 1)
+    progress_dialog.show("Exporting data!", "", 0, 1, 1)
 
     all_hubs = self.data.dataHubs
     for hub_index in range(all_hubs.count):
       hub = all_hubs.item(hub_index)
 
+      self.log.info("Exporting hub \"{}\"".format(hub.name))
+
       all_projects = hub.dataProjects
       for project_index in range(all_projects.count):
         files = []
         project = all_projects.item(project_index)
+        self.log.info("Exporting project \"{}\"".format(project.name))
+
         folder = project.rootFolder
 
         files.extend(self._get_files_for(folder))
 
-        progress_dialog.message = "Hub: {} of {}\nProject: {} of {}\nWriting design %v of %m".format(
+        progress_dialog.message = "Hub: {} of {}\nProject: {} of {}\nExporting design %v of %m".format(
           hub_index + 1,
           all_hubs.count,
           project_index + 1,
@@ -61,12 +90,32 @@ class TotalExport(object):
         progress_dialog.maximumValue = len(files)
         progress_dialog.reset()
 
+        if not files:
+          self.log.info("No files to export for this project")
+          continue
+
         for file_index in range(len(files)):
           if progress_dialog.wasCancelled:
+            self.log.info("The process was cancelled!")
+            self.was_cancelled = True
             return
-          file = files[file_index]
+
+          file: adsk.core.DataFile = files[file_index]
           progress_dialog.progressValue = file_index + 1
           self._write_data_file(output_path, file)
+        self.log.info("Finished exporting project \"{}\"".format(project.name))
+      self.log.info("Finished exporting hub \"{}\"".format(hub.name))
+
+  def _ask_for_output_path(self):
+    folder_dialog = self.ui.createFolderDialog()
+    folder_dialog.title = "Where should we store this export?"
+    dialog_result = folder_dialog.showDialog()
+    if dialog_result != adsk.core.DialogResults.DialogOK:
+      return None
+
+    output_path = folder_dialog.folder
+
+    return output_path
 
   def _get_files_for(self, folder):
     files = []
@@ -80,20 +129,27 @@ class TotalExport(object):
 
   def _write_data_file(self, root_folder, file: adsk.core.DataFile):
     if file.fileExtension != "f3d" and file.fileExtension != "f3z":
+      self.log.info("Not exporting file \"{}\"".format(file.name))
       return
+
+    self.log.info("Exporting file \"{}\"".format(file.name))
 
     try:
       document = self.documents.open(file)
-    except BaseException as ex:
-      self.ui.messageBox("Opening {} failed!".format(file.name))
-      return
 
-    if document is None:
+      if document is None:
+        raise Exception("Documents.open returned None")
+
+      document.activate()
+    except BaseException as ex:
+      self.num_issues += 1
+      self.log.exception("Opening {} failed!".format(file.name), exc_info=ex)
       return
 
     try:
       file_folder = file.parentFolder
       file_folder_path = self._name(file_folder.name)
+
       while file_folder.parentFolder is not None:
         file_folder = file_folder.parentFolder
         file_folder_path = os.path.join(self._name(file_folder.name), file_folder_path)
@@ -110,8 +166,11 @@ class TotalExport(object):
         )
 
       if not os.path.exists(file_folder_path):
-        self.ui.messageBox("Couldn't make root folder {}".format(file_folder_path))
+        self.num_issues += 1
+        self.log.exception("Couldn't make root folder\"{}\"".format(file_folder_path))
         return
+
+      self.log.info("Writing to \"{}\"".format(file_folder_path))
 
       fusion_document: adsk.fusion.FusionDocument = adsk.fusion.FusionDocument.cast(document)
       design: adsk.fusion.Design = fusion_document.design
@@ -123,13 +182,23 @@ class TotalExport(object):
       export_manager.execute(options)
       
       self._write_component(file_folder_path, design.rootComponent)
-    except BaseException:
-      self.ui.messageBox("Failed while working on {}".format(file_folder_path))
+
+      self.log.info("Finished exporting file \"{}\"".format(file.name))
+    except BaseException as ex:
+      self.num_issues += 1
+      self.log.exception("Failed while working on \"{}\"".format(file.name), exc_info=ex)
       raise
     finally:
-      document.close(False)
+      try:
+        if document is not None:
+          document.close(False)
+      except BaseException as ex:
+        self.num_issues += 1
+        self.log.exception("Failed to close \"{}\"".format(file.name), exc_info=ex)
+
 
   def _write_component(self, component_base_path, component: adsk.fusion.Component):
+    self.log.info("Writing component \"{}\" to \"{}\"".format(component.name, component_base_path))
     design = component.parentDesign
     
     output_path = os.path.join(component_base_path, self._name(component.name))
@@ -153,7 +222,10 @@ class TotalExport(object):
   def _write_step(self, output_path, component: adsk.fusion.Component):
     file_path = output_path + ".stp"
     if os.path.exists(file_path):
+      self.log.info("Step file \"{}\" already exists".format(file_path))
       return
+
+    self.log.info("Writing step file \"{}\"".format(file_path))
     export_manager = component.parentDesign.exportManager
 
     options = export_manager.createSTEPExportOptions(output_path, component)
@@ -162,15 +234,20 @@ class TotalExport(object):
   def _write_stl(self, output_path, component: adsk.fusion.Component):
     file_path = output_path + ".stl"
     if os.path.exists(file_path):
+      self.log.info("Stl file \"{}\" already exists".format(file_path))
       return
+
+    self.log.info("Writing stl file \"{}\"".format(file_path))
     export_manager = component.parentDesign.exportManager
 
     try:
       options = export_manager.createSTLExportOptions(component, output_path)
       export_manager.execute(options)
-    except BaseException:
-      # Probably an empty model, ignore it
-      pass
+    except BaseException as ex:
+      self.log.exception("Failed writing stl file \"{}\"".format(file_path), exc_info=ex)
+
+      if component.occurrences.count + component.bRepBodies.count + component.meshBodies.count > 0:
+        self.num_issues += 1
 
     bRepBodies = component.bRepBodies
     meshBodies = component.meshBodies
@@ -188,7 +265,10 @@ class TotalExport(object):
   def _write_stl_body(self, output_path, body):
     file_path = output_path + ".stl"
     if os.path.exists(file_path):
+      self.log.info("Stl body file \"{}\" already exists".format(file_path))
       return
+
+    self.log.info("Writing stl body file \"{}\"".format(file_path))
     export_manager = body.parentComponent.parentDesign.exportManager
 
     try:
@@ -201,7 +281,10 @@ class TotalExport(object):
   def _write_iges(self, output_path, component: adsk.fusion.Component):
     file_path = output_path + ".igs"
     if os.path.exists(file_path):
+      self.log.info("Iges file \"{}\" already exists".format(file_path))
       return
+
+    self.log.info("Writing iges file \"{}\"".format(file_path))
 
     export_manager = component.parentDesign.exportManager
 
@@ -211,7 +294,10 @@ class TotalExport(object):
   def _write_dxf(self, output_path, sketch: adsk.fusion.Sketch):
     file_path = output_path + ".dxf"
     if os.path.exists(file_path):
+      self.log.info("DXF sketch file \"{}\" already exists".format(file_path))
       return
+
+    self.log.info("Writing dxf sketch file \"{}\"".format(file_path))
 
     sketch.saveAsDXF(output_path)
 
