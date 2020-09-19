@@ -18,7 +18,7 @@ Autodesk just announced that they were limiting features in their free tier to a
 No warrenty is implied, etc. etc. Go blame Autodesk for changing the free tier. If you want to blame me for anything, blame me and my sense of ethics for feeling like I need to write this program in the first place.
 
 ## What if I find a bug?
-If an exception occurs, it should tell you what file it happened on in a message box and THEN another message box will pop up with the exception itself. Take screenshots of both. Submit an issue. Please and thank you!
+If an exception occurs, the script will let you know after it has exported everything that it can export. There will be a log file called output.log in your export directory. Submit an issue with that file attached. Please and thank you!
 
 Also, if you can share the file that it failed on, that may help me, but it depends on what the exception actually shows.
 
