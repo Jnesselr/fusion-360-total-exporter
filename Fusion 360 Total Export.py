@@ -6,6 +6,7 @@ import adsk.core, adsk.fusion, adsk.cam, traceback
 from threading import Thread
 import time
 import os
+import re
 
 
 
@@ -203,7 +204,7 @@ class TotalExport(object):
     return out_path
   
   def _name(self, name):
-    return name.replace('/', ' ').replace('"', ' ').replace('%', ' ')
+    return re.sub('[^a-zA-Z0-9 \n\.]', '', name)
 
     
 
