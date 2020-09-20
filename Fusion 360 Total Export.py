@@ -312,6 +312,8 @@ class TotalExport(object):
     if name.endswith('.stp') or name.endswith('.stl') or name.endswith('.igs'):
       name = name[0: -4] + "_" + name[-3:]
 
+    name = name.strip(".")
+
     return name
 
     
