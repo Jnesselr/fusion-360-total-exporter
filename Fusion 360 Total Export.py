@@ -5,13 +5,31 @@ from __future__ import with_statement
 import adsk.core, adsk.fusion, adsk.cam, traceback
 
 from logging import Logger, FileHandler, Formatter
+from pathlib import Path
 from threading import Thread
 
 import time
 import os
 import re
 
+class ManageFailed:
+    def __init__(self, file_path):
+      self.failed_path = file_path + ".failed"
+      self.log = Logger("Fusion 360 Total Export")
 
+    def __enter__(self):
+      self.exists = os.path.exists(self.failed_path)
+      if self.exists:
+        self.log.info("Seems like a previous export failed. Fix the the problem and delete the file \"{}\"".format(self.failed_path))
+      else:
+        path = os.path.dirname(self.failed_path)
+        Path(path).mkdir(parents=True, exist_ok=True)
+        Path(self.failed_path).touch()
+      return self.exists
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+      if exc_tb is None and not self.exists:
+        os.remove(self.failed_path)
 
 class TotalExport(object):
   def __init__(self, app):
@@ -177,9 +195,14 @@ class TotalExport(object):
       export_manager: adsk.fusion.ExportManager = design.exportManager
 
       file_export_path = os.path.join(file_folder_path, self._name(file.name))
-      # Write f3d/f3z file
-      options = export_manager.createFusionArchiveExportOptions(file_export_path)
-      export_manager.execute(options)
+      with ManageFailed(file_export_path) as failedExists:
+        if not failedExists:
+          # Write f3d/f3z file
+          options = export_manager.createFusionArchiveExportOptions(file_export_path)
+          export_manager.execute(options)
+        else:
+          # don't bother with other export types when the main fail can't be downloaded
+          pass
       
       self._write_component(file_folder_path, design.rootComponent)
 
@@ -224,12 +247,14 @@ class TotalExport(object):
     if os.path.exists(file_path):
       self.log.info("Step file \"{}\" already exists".format(file_path))
       return
+  
+    with ManageFailed(file_path) as failedExists:
+      if not failedExists:
+        self.log.info("Writing step file \"{}\"".format(file_path))
+        export_manager = component.parentDesign.exportManager
 
-    self.log.info("Writing step file \"{}\"".format(file_path))
-    export_manager = component.parentDesign.exportManager
-
-    options = export_manager.createSTEPExportOptions(output_path, component)
-    export_manager.execute(options)
+        options = export_manager.createSTEPExportOptions(output_path, component)
+        export_manager.execute(options)
 
   def _write_stl(self, output_path, component: adsk.fusion.Component):
     file_path = output_path + ".stl"
@@ -237,17 +262,19 @@ class TotalExport(object):
       self.log.info("Stl file \"{}\" already exists".format(file_path))
       return
 
-    self.log.info("Writing stl file \"{}\"".format(file_path))
-    export_manager = component.parentDesign.exportManager
+    with ManageFailed(file_path) as failedExists:
+      if not failedExists:
+        self.log.info("Writing stl file \"{}\"".format(file_path))
+        export_manager = component.parentDesign.exportManager
 
-    try:
-      options = export_manager.createSTLExportOptions(component, output_path)
-      export_manager.execute(options)
-    except BaseException as ex:
-      self.log.exception("Failed writing stl file \"{}\"".format(file_path), exc_info=ex)
+        try:
+          options = export_manager.createSTLExportOptions(component, output_path)
+          export_manager.execute(options)
+        except BaseException as ex:
+          self.log.exception("Failed writing stl file \"{}\"".format(file_path), exc_info=ex)
 
-      if component.occurrences.count + component.bRepBodies.count + component.meshBodies.count > 0:
-        self.num_issues += 1
+          if component.occurrences.count + component.bRepBodies.count + component.meshBodies.count > 0:
+            self.num_issues += 1
 
     bRepBodies = component.bRepBodies
     meshBodies = component.meshBodies
@@ -268,15 +295,17 @@ class TotalExport(object):
       self.log.info("Stl body file \"{}\" already exists".format(file_path))
       return
 
-    self.log.info("Writing stl body file \"{}\"".format(file_path))
-    export_manager = body.parentComponent.parentDesign.exportManager
+    with ManageFailed(file_path) as failedExists:
+      if not failedExists:
+        self.log.info("Writing stl body file \"{}\"".format(file_path))
+        export_manager = body.parentComponent.parentDesign.exportManager
 
-    try:
-      options = export_manager.createSTLExportOptions(body, file_path)
-      export_manager.execute(options)
-    except BaseException:
-      # Probably an empty model, ignore it
-      pass
+        try:
+          options = export_manager.createSTLExportOptions(body, file_path)
+          export_manager.execute(options)
+        except BaseException:
+          # Probably an empty model, ignore it
+          pass
 
   def _write_iges(self, output_path, component: adsk.fusion.Component):
     file_path = output_path + ".igs"
@@ -284,12 +313,14 @@ class TotalExport(object):
       self.log.info("Iges file \"{}\" already exists".format(file_path))
       return
 
-    self.log.info("Writing iges file \"{}\"".format(file_path))
+    with ManageFailed(file_path) as failedExists:
+      if not failedExists:
+        self.log.info("Writing iges file \"{}\"".format(file_path))
 
-    export_manager = component.parentDesign.exportManager
+        export_manager = component.parentDesign.exportManager
 
-    options = export_manager.createIGESExportOptions(file_path, component)
-    export_manager.execute(options)
+        options = export_manager.createIGESExportOptions(file_path, component)
+        export_manager.execute(options)
 
   def _write_dxf(self, output_path, sketch: adsk.fusion.Sketch):
     file_path = output_path + ".dxf"
@@ -297,9 +328,10 @@ class TotalExport(object):
       self.log.info("DXF sketch file \"{}\" already exists".format(file_path))
       return
 
-    self.log.info("Writing dxf sketch file \"{}\"".format(file_path))
-
-    sketch.saveAsDXF(file_path)
+    with ManageFailed(file_path) as failedExists:
+      if not failedExists:
+        self.log.info("Writing dxf sketch file \"{}\"".format(file_path))
+        sketch.saveAsDXF(file_path)
 
   def _take(self, *path):
     out_path = os.path.join(*path)
