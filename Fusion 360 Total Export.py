@@ -261,9 +261,13 @@ class TotalExport(object):
     occurrences = component.occurrences
     for occurrence_index in range(occurrences.count):
       occurrence = occurrences.item(occurrence_index)
-      sub_component = occurrence.component
-      sub_path = self._take(component_base_path, self._name(component.name))
-      self._write_component(sub_path, sub_component, modified_time)
+      try:
+        sub_component = occurrence.component
+        sub_path = self._take(component_base_path, self._name(component.name))
+        self._write_component(sub_path, sub_component, modified_time)
+      except BaseException as ex:
+        self.log.exception("Failed to get component", exc_info=ex)
+
 
   def _write_step(self, output_path, component: adsk.fusion.Component, modified_time):
     file_path = output_path + ".stp"
