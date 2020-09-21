@@ -35,6 +35,10 @@ class ManageFailed:
     def __exit__(self, exc_type, exc_val, exc_tb):
       if self.failed_exists:
         return
+
+      # file was not created
+      if not os.path.exists(self.file_path):
+        return
       
       if not self.failed and exc_tb is None:
         os.remove(self.failed_path)
