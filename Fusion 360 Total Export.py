@@ -14,11 +14,11 @@ import os
 import re
 
 class ManageFailed:
-    def __init__(self, file_path, modified_time):
+    def __init__(self, file_path, modified_time, log):
       self.file_path = file_path
       self.modified_time = modified_time
       self.failed_path = file_path + ".failed"
-      self.log = Logger("Fusion 360 Total Export")
+      self.log = log
       self.failed = False
       self.failed_exists = False
 
@@ -201,7 +201,7 @@ class TotalExport(object):
         self.log.info("Model has not changed")
         return
 
-    with ManageFailed(f3_file, last_update_ts) as manager:
+    with ManageFailed(f3_file, last_update_ts, self.log) as manager:
       if not manager.failed_exists:
         try:
           document = self.documents.open(file)
@@ -268,7 +268,7 @@ class TotalExport(object):
   def _write_step(self, output_path, component: adsk.fusion.Component, modified_time):
     file_path = output_path + ".stp"
 
-    with ManageFailed(file_path, modified_time) as manager:
+    with ManageFailed(file_path, modified_time, self.log) as manager:
       if not manager.failed_exists:
         self.log.info("Writing step file \"{}\"".format(file_path))
         export_manager = component.parentDesign.exportManager
@@ -279,7 +279,7 @@ class TotalExport(object):
   def _write_stl(self, output_path, component: adsk.fusion.Component, modified_time):
     file_path = output_path + ".stl"
     try:
-      with ManageFailed(file_path, modified_time) as manager:
+      with ManageFailed(file_path, modified_time, self.log) as manager:
         if not manager.failed_exists:
           self.log.info("Writing stl file \"{}\"".format(file_path))
           export_manager = component.parentDesign.exportManager
@@ -308,7 +308,7 @@ class TotalExport(object):
     file_path = output_path + ".stl"
 
     try:
-      with ManageFailed(file_path, modified_time) as manager:
+      with ManageFailed(file_path, modified_time, self.log) as manager:
         if not manager.failed_exists:
           self.log.info("Writing stl body file \"{}\"".format(file_path))
           export_manager = body.parentComponent.parentDesign.exportManager
@@ -322,7 +322,7 @@ class TotalExport(object):
   def _write_iges(self, output_path, component: adsk.fusion.Component, modified_time):
     file_path = output_path + ".igs"
 
-    with ManageFailed(file_path, modified_time) as manager:
+    with ManageFailed(file_path, modified_time, self.log) as manager:
       if not manager.failed_exists:
         self.log.info("Writing iges file \"{}\"".format(file_path))
 
@@ -334,7 +334,7 @@ class TotalExport(object):
   def _write_dxf(self, output_path, sketch: adsk.fusion.Sketch, modified_time):
     file_path = output_path + ".dxf"
 
-    with ManageFailed(file_path, modified_time) as manager:
+    with ManageFailed(file_path, modified_time, self.log) as manager:
       if not manager.failed_exists:
         self.log.info("Writing dxf sketch file \"{}\"".format(file_path))
         sketch.saveAsDXF(file_path)
