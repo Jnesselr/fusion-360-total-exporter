@@ -9,6 +9,7 @@ from pathlib import Path
 from threading import Thread
 
 import time
+import datetime
 import os
 import re
 
@@ -152,6 +153,39 @@ class TotalExport(object):
 
     self.log.info("Exporting file \"{}\"".format(file.name))
 
+    file_folder = file.parentFolder
+    file_folder_path = self._name(file_folder.name)
+
+    while file_folder.parentFolder is not None:
+      file_folder = file_folder.parentFolder
+      file_folder_path = os.path.join(self._name(file_folder.name), file_folder_path)
+
+    parent_project = file_folder.parentProject
+    parent_hub = parent_project.parentHub
+
+    file_folder_path = self._take(
+      root_folder,
+      "Hub {}".format(self._name(parent_hub.name)),
+      "Project {}".format(self._name(parent_project.name)),
+      file_folder_path,
+      self._name(file.name) + "." + file.fileExtension
+      )
+
+    if not os.path.exists(file_folder_path):
+      self.num_issues += 1
+      self.log.exception("Couldn't make root folder\"{}\"".format(file_folder_path))
+      return  
+
+    file_export_path = os.path.join(file_folder_path, self._name(file.name))
+    f3_file = file_export_path + "." + file.latestVersion.fileExtension
+    last_update_ts = datetime.datetime.fromtimestamp(file.latestVersion.dateCreated).timestamp()
+    if os.path.exists(f3_file):
+      # get the file date and compare it
+      existing_updated = os.path.getmtime(f3_file)
+      if last_update_ts == existing_updated:
+        self.log.info("Model has not changed")
+        pass
+
     try:
       document = self.documents.open(file)
 
@@ -165,41 +199,21 @@ class TotalExport(object):
       return
 
     try:
-      file_folder = file.parentFolder
-      file_folder_path = self._name(file_folder.name)
-
-      while file_folder.parentFolder is not None:
-        file_folder = file_folder.parentFolder
-        file_folder_path = os.path.join(self._name(file_folder.name), file_folder_path)
-
-      parent_project = file_folder.parentProject
-      parent_hub = parent_project.parentHub
-
-      file_folder_path = self._take(
-        root_folder,
-        "Hub {}".format(self._name(parent_hub.name)),
-        "Project {}".format(self._name(parent_project.name)),
-        file_folder_path,
-        self._name(file.name) + "." + file.fileExtension
-        )
-
-      if not os.path.exists(file_folder_path):
-        self.num_issues += 1
-        self.log.exception("Couldn't make root folder\"{}\"".format(file_folder_path))
-        return
-
       self.log.info("Writing to \"{}\"".format(file_folder_path))
 
       fusion_document: adsk.fusion.FusionDocument = adsk.fusion.FusionDocument.cast(document)
       design: adsk.fusion.Design = fusion_document.design
       export_manager: adsk.fusion.ExportManager = design.exportManager
 
-      file_export_path = os.path.join(file_folder_path, self._name(file.name))
-      with ManageFailed(file_export_path) as failedExists:
+      with ManageFailed(f3_file) as failedExists:
         if not failedExists:
           # Write f3d/f3z file
           options = export_manager.createFusionArchiveExportOptions(file_export_path)
           export_manager.execute(options)
+
+          # set the modified time to the last version created time
+          fileStat = os.stat(f3_file)
+          os.utime(f3_file, (fileStat.st_atime, last_update_ts))
         else:
           # don't bother with other export types when the main fail can't be downloaded
           pass
