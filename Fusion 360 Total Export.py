@@ -349,7 +349,8 @@ class TotalExport(object):
     return out_path
   
   def _name(self, name):
-    name = re.sub('[^a-zA-Z0-9 \n\.]', '', name).strip()
+    # name = re.sub('[^a-zA-Z0-9 \n\.]', '', name).strip() #
+    name = re.sub('[\\/:\"*?<>|{}]', '', name).strip() #AGe Remove not allowed characters for file name and directories
 
     if name.endswith('.stp') or name.endswith('.stl') or name.endswith('.igs'):
       name = name[0: -4] + "_" + name[-3:]
