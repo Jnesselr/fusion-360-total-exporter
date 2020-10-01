@@ -63,18 +63,21 @@ class TotalExport(object):
 
   def _export_data(self, output_path):
     progress_dialog = self.ui.createProgressDialog()
-    progress_dialog.show("Exporting data!", "", 0, 1, 1)
-
     all_hubs = self.data.dataHubs
     for hub_index in range(all_hubs.count):
 
       hub = all_hubs.item(hub_index)
 
-      export_this_hub = self.ui.messageBox("Export Hub \"{}\"?".format(hub.name), "Shall this Hub be exported?", YesNoButtonType, QuestionIconType)
+      #export_this_hub = self.ui.messageBox("Export Hub \"{}\"?".format(hub.name), "Shall this Hub be exported?", adsk.core.YesNoButtonType, adsk.core.QuestionIconType)
+      export_this_hub = self.ui.messageBox("Export hub \"{}\"?".format(hub.name), "Shall this hub be exported?", 3, 1)
 
-      if(export_this_hub == DialogNo)
-        hub_index = hub_index + 1
+      #if export_this_hub == adsk.core.DialogNo:
+      if export_this_hub == 3:
+        self.log.info("Skipping hub \"{}\" due to user request!".format(hub.name))
         continue
+
+      # progress_dialog has to be created and shown here, or otherwise no interaction with the hub selection dialog is possible.
+      progress_dialog.show("Exporting data!", "", 0, 1, 1)
 
       self.log.info("Exporting hub \"{}\"".format(hub.name))
 
@@ -112,6 +115,7 @@ class TotalExport(object):
           self._write_data_file(output_path, file)
         self.log.info("Finished exporting project \"{}\"".format(project.name))
       self.log.info("Finished exporting hub \"{}\"".format(hub.name))
+      progress_dialog.hide() # Closing the progress bar dialog for the current hub to gain focus back to the hub selection dialog
 
     self.ui.messageBox("No more Hubs to export from!", "Finished")
 
