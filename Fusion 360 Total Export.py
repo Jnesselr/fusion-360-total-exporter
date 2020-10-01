@@ -67,7 +67,14 @@ class TotalExport(object):
 
     all_hubs = self.data.dataHubs
     for hub_index in range(all_hubs.count):
+
       hub = all_hubs.item(hub_index)
+
+      export_this_hub = self.ui.messageBox("Export Hub \"{}\"?".format(hub.name), "Shall this Hub be exported?", YesNoButtonType, QuestionIconType)
+
+      if(export_this_hub == DialogNo)
+        hub_index = hub_index + 1
+        continue
 
       self.log.info("Exporting hub \"{}\"".format(hub.name))
 
@@ -105,6 +112,8 @@ class TotalExport(object):
           self._write_data_file(output_path, file)
         self.log.info("Finished exporting project \"{}\"".format(project.name))
       self.log.info("Finished exporting hub \"{}\"".format(hub.name))
+
+    self.ui.messageBox("No more Hubs to export from!", "Finished")
 
   def _ask_for_output_path(self):
     folder_dialog = self.ui.createFolderDialog()
