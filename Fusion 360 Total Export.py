@@ -62,6 +62,7 @@ class TotalExport(object):
       self.ui.messageBox("Export finished completely successfully!")
 
   def _export_data(self, output_path):
+    projname = self.ui.inputBox("Enter project name or leave blank for all","Project name",)[0]
     progress_dialog = self.ui.createProgressDialog()
     progress_dialog.show("Exporting data!", "", 0, 1, 1)
 
@@ -70,11 +71,15 @@ class TotalExport(object):
       hub = all_hubs.item(hub_index)
 
       self.log.info("Exporting hub \"{}\"".format(hub.name))
+      self.log.info("Project name \"{}\"".format(projname))
 
       all_projects = hub.dataProjects
       for project_index in range(all_projects.count):
         files = []
         project = all_projects.item(project_index)
+        if project.name != projname and projname != "":
+          self.log.info("Skipping project \"{}\"".format(project.name))
+          continue
         self.log.info("Exporting project \"{}\"".format(project.name))
 
         folder = project.rootFolder
